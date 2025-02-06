@@ -11,24 +11,13 @@
 # Feel free. Licensed under the "Good Luck With That" public license.
 ################################################################################
 
-# Make sure we're on a Mac before continuing
-if [ $(uname) != "Darwin" ]; then
-  printf "Oops, it looks like you're using a non-MacOS system. This script only supports MacOS. Exiting..."
-  exit 1
-fi
-
-# Establish some ground rules
-export BOOTSTRAP_REPO_URL="https://github.com/khaosx/bootstrap-macos.git"
-export BOOTSTRAP_DIR=$HOME/macos-setup
-export DEFAULT_COMPUTER_OWNER="Kris"
-export DEFAULT_COMPUTER_NAME="Silicon"
-export DEFAULT_TIME_ZONE="America/New_York"
-
+# Variables
+BOOTSTRAP_REPO_URL="https://github.com/khaosx/bootstrap-macos.git"
+BOOTSTRAP_DIR=$HOME/macos-setup
+DEFAULT_COMPUTER_OWNER="Kris"
+DEFAULT_COMPUTER_NAME="Silicon"
+DEFAULT_TIME_ZONE="America/New_York"
 SYSDESC=$(system_profiler SPHardwareDataType | grep -o "Model Name:.*" | sed 's:.*Model Name\: ::')
-
-# Authenticate via sudo and update existing `sudo` time stamp until finished
-sudo -v
-while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 
 # Let's get started
 clear
@@ -38,41 +27,35 @@ printf "*******                 Post Install MacOS Config                 ******
 printf "*******                                                           *******\\n"
 printf "*************************************************************************\\n\\n"
 
-printf "Before we get started, let's get some info about your setup.\\n"
-
-# Get system name
-
-printf "Enter a name for your Mac. (Leave blank for default: $DEFAULT_COMPUTER_NAME)\\n"
-read COMPUTER_NAME
-export COMPUTER_NAME=${COMPUTER_NAME:-$DEFAULT_COMPUTER_NAME}
-
-# Generate system description
-printf "Who is the primary user of this system? (Leave blank for default: $DEFAULT_COMPUTER_OWNER)\\n"
-read COMPUTER_OWNER
-export COMPUTER_OWNER=${COMPUTER_OWNER:-$DEFAULT_COMPUTER_OWNER}
-strFinalDescription="$COMPUTER_OWNER's $SYSDESC"
-export COMPUTER_DESCRIPTION=$strFinalDescription
-
-# Get time zone
-export DEFAULT_TIME_ZONE="America/New_York"
-printf "Enter your desired time zone.\\n"
-printf "To view available options run \`sudo systemsetup -listtimezones\`\\n"
-printf "(Leave blank for default: $DEFAULT_TIME_ZONE)\\n"
-read TIME_ZONE
-export TIME_ZONE=${TIME_ZONE:-$DEFAULT_TIME_ZONE}
-
-printf "Have you signed in to the Mac App Store? (y/n)\\n"
-read flagAppStoreSignedIn
-echo
-if [[ ! "$flagAppStoreSignedIn" =~ ^[Yy]$ ]]; then
-  printf "Please sign into the Mac App Store\\n"
+printf "Verifying MacOS is the operating system...\\n"
+if [[ $(uname -s) != "Darwin" ]]; then  # Use [[ ]] for string comparison in Zsh
+  printf "This script only supports MacOS. Exiting.\\n"
   exit 1
+else
+  printf "OS Verified. You may be prompted to enter your password for sudo\\n\\n"
 fi
 
-# I want all hostnames to be the lowercase version of the computer name
-HOST_NAME=$(echo ${COMPUTER_NAME} | tr '[:upper:]' '[:lower:]')
-export HOST_NAME=${HOST_NAME}
+# Authenticate via sudo and update existing `sudo` time stamp until finished
+sudo -v
+while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 
+printf "\\nNow, let's get some info about your setup.\\n\\n"
+printf "\\nEnter a name for your Mac. (Leave blank for default: %s)\n" "$DEFAULT_COMPUTER_NAME"
+read -r COMPUTER_NAME
+printf "\\nWho is the primary user of this system? (Leave blank for default: %s)\n" "$DEFAULT_COMPUTER_OWNER"
+read -r COMPUTER_OWNER
+printf "\\nEnter your time zone.  (Leave blank for default: $DEFAULT_TIME_ZONE)\\n"
+printf "NOTE: To view all zones, run \`sudo systemsetup -listtimezones\`\\n"
+read -r TIME_ZONE
+printf "\\n"
+read -r "REPLY?Please sign in to the Mac App Store. Press Enter when done."
+COMPUTER_NAME="${COMPUTER_NAME:-$DEFAULT_COMPUTER_NAME}"
+COMPUTER_OWNER="${COMPUTER_OWNER:-$DEFAULT_COMPUTER_OWNER}"
+COMPUTER_DESCRIPTION="$COMPUTER_OWNER's $SYSDESC"         # cat into default description
+TIME_ZONE="${TIME_ZONE:-$DEFAULT_TIME_ZONE}"
+HOST_NAME=$(echo ${COMPUTER_NAME} | tr '[:upper:]' '[:lower:]')
+
+clear
 printf "Looks good. Here's what we've got so far.\\n"
 printf "Bootstrap Script:       ==> $BOOTSTRAP_REPO_URL\\n"
 printf "Bootstrap Directory:    ==> $BOOTSTRAP_DIR\\n"
@@ -110,13 +93,31 @@ sudo /usr/bin/defaults write /private/var/db/timed/Library/Preferences/com.apple
 sudo /usr/bin/defaults write /private/var/db/timed/Library/Preferences/com.apple.timed.plist TMAutomaticTimeZoneEnabled -bool YES
 sudo /usr/sbin/systemsetup -setusingnetworktime on
 
+printf "Checking Command Line Tools for Xcode\\n"
+xcode-select -p &> /dev/null  # Tries to print the path
+if [ $? -ne 0 ]; then
+  printf "Command Line Tools for Xcode not found. Installing from softwareupdate.\\n"
+# This temporary file prompts the 'softwareupdate' utility to list the Command Line Tools
+  touch /tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress;
+  PROD=$(softwareupdate -l | grep "\*.*Command Line" | tail -n 1 | sed 's/^[^C]* //')
+  softwareupdate -i "$PROD" --verbose;
+else
+  printf "Command Line Tools for Xcode have been installed.\\n"
+fi
+
 printf "Installing HomeBrew\\n"
-/bin/bash -c "$(NONINTERACTIVE=1 curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+echo >> /$HOME/.zprofile
+echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> /$HOME/.zprofile
+eval "$(/opt/homebrew/bin/brew shellenv)"
 brew analytics off
 brew doctor
 
-printf "Installing Ansible"
-brew install ansible ansible-lint
+printf "Installing base loadout\\n"
+brew install ansible ansible-lint git wget jq mas dockutil
+brew install --cask 1password vscodium
+
+ansible-galaxy collection install community.general
 
 printf  "**********************************************************************\\n"
 printf  "**********************************************************************\\n"
