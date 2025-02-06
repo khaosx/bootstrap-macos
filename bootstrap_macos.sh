@@ -1,15 +1,54 @@
 #!/usr/bin/env sh
 
-################################################################################
-# bootstrap_macos.sh
+# bootstrap_macos.sh - macOS Post-Installation Configuration
+
+# Author: Kristopher Newman
+# Date: 2025-02-06
 #
-# usage: ./bootstrap_macos.sh <system_name>
+# Description:
+# This script automates common post-installation tasks for macOS, including
+# configuring system settings, installing command-line tools, and setting up
+# essential applications.  It is intended to streamline the setup process
+# after a fresh macOS installation.
 #
-# Script to be run after MacOS install to set preferences and install apps.
-# Shamelessly stolen from https://github.com/joshukraine/ and modified by me.
-# Odds are, this won't be useful to you except as a template to build your own.
-# Feel free. Licensed under the "Good Luck With That" public license.
-################################################################################
+# Usage:
+#   ./bootstrap_macos.sh [system_name]
+#
+# Arguments:
+#   system_name (optional):  The name to assign to the Mac. If not provided,
+#                            a default name will be used (see configuration
+#                            section).
+#
+# Configuration:
+#   Default values for various settings (e.g., computer name, owner,
+#   time zone) are defined as variables within the script. These can be
+#   modified directly in the script.  Consider using environment variables or
+#   a separate configuration file for more complex setups.
+#
+# Dependencies:
+#   - macOS (Darwin kernel)
+#   - An active internet connection
+#   - Xcode Command Line Tools (automatically installed if not present)
+#   - Homebrew (automatically installed)
+#   - Homebrew bundle continaing all dependencies for brew, mas, cask, etc (Optional, but reccomended)
+#     - Generate with "brew bundle --file=$HOME/.Brewfile"
+#     - Set with command export HOMEBREW_BUNDLE_FILE="$HOME/.Brewfile"
+#
+# Notes:
+#   - This script requires administrator privileges (sudo) to perform certain
+#     actions.
+#   - User interaction is required for some steps (e.g., Mac App Store sign-in).
+#   - A system restart is recommended after the script completes.
+#   - Error handling and input validation could be improved for greater
+#     robustness.
+#   - The application installation list is currently hardcoded. Consider making
+#     this configurable (e.g., via a separate file or command-line options).
+#   - This script draws inspiration from and adapts concepts from other
+#     bootstrap scripts, including those available on GitHub.  Attribution for
+#     specific components is provided within the script where applicable.
+#
+# License:
+#   MIT License
 
 # Variables
 BOOTSTRAP_REPO_URL="https://github.com/khaosx/bootstrap-macos.git"  # Or your preferred repo
@@ -25,7 +64,7 @@ readonly HOMEBREW_INSTALL_URL="https://raw.githubusercontent.com/Homebrew/instal
 
 # Functions
 
-## Function to keep sudo alive
+# Function to keep sudo alive
 sudo_keep_alive() {
     local timeout="${1:-$SUDO_KEEPALIVE_TIMEOUT}"
     local start_time=$(date +%s)
@@ -86,9 +125,16 @@ install_homebrew() {
 }
 
 install_brewfile() {
-    printf "Installing base loadout.\n"
-    brew bundle
-    brew cleanup
+    if [[ -n "$MY_ENV_VAR" ]]; then
+      printf "Installing base loadout.\n"
+      brew bundle
+      brew cleanup
+    else
+      printf "No brewfile found, please install applications manually.\n"
+      printf "To avoid this step:\n"
+      printf "Generate with \"brew bundle --file=$HOME/.Brewfile\"\n"
+      printf "Run command \'export HOMEBREW_BUNDLE_FILE=\"$HOME/.Brewfile\"\n"
+    fi
 }
 
 install_ansible_components() {
