@@ -68,8 +68,9 @@ get_user_input() {
     local prompt="$1"
     local default_value="$2"
     local input
-    printf "$prompt (Leave blank for default: %s)\n" "$default_value"
-    read -r input
+
+    printf "$prompt (Leave blank for default: %s)\n" "$default_value" > /dev/tty  # Write prompt to /dev/tty
+    read -r input < /dev/tty # Read input from /dev/tty
     echo "${input:-$default_value}"  # Return the input or default
 }
 
