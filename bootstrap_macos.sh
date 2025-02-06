@@ -64,28 +64,6 @@ readonly HOMEBREW_INSTALL_URL="https://raw.githubusercontent.com/Homebrew/instal
 
 # Functions
 
-# Function to keep sudo alive
-sudo_keep_alive() {
-    local timeout="${1:-$SUDO_KEEPALIVE_TIMEOUT}"
-    local start_time=$(date +%s)
-    while true; do
-        sleep 60
-        sudo -v &> /dev/null
-        if [[ $? -ne 0 ]]; then
-            echo "Sudo timestamp expired."
-            return 1
-        fi
-        local elapsed_time=$(( $(date +%s) - start_time ))
-        if (( elapsed_time >= timeout )); then
-            echo "Sudo keep-alive timeout reached."
-            return 1
-        fi
-    done & # Run in background
-    local pid=$!
-    wait $pid # Wait for the background process to avoid race conditions
-    return 0
-}
-
 get_user_input() {
     local prompt="$1"
     local default_value="$2"
@@ -159,8 +137,9 @@ printf "Verifying macOS is the operating system...\n"
 [[ $(uname -s) != "Darwin" ]] && { echo "This script only supports macOS. Exiting."; exit 1; }
 printf "OS Verified. You may be prompted to enter your password for sudo\n\n"
 
-# Keep sudo alive in background
-sudo_keep_alive
+# Authenticate via sudo and update existing `sudo` time stamp until finished
+sudo -v
+while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 
 printf "\nNow, let's get some info about your setup.\n\n"
 
