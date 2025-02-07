@@ -106,13 +106,9 @@ install_homebrew() {
   if ! command -v brew &> /dev/null; then # Check if brew is already installed
     printf "Installing Homebrew.\n"
     /bin/bash -c "$(curl -fsSL "$HOMEBREW_INSTALL_URL")"
-    eval "$(/opt/homebrew/bin/brew shellenv)" # Activate in current shell
-    brew analytics off
-    brew doctor
   else
     echo "Homebrew is already installed."
   fi
-  brew install chezmoi
 }
 
 install_brewfile() {
@@ -135,7 +131,7 @@ install_ansible_components() {
 
 install_dotfiles() {
     printf "\nInstalling and linking dotfiles.\n"
-    chezmoi init --apply $GITHUB_USERNAME
+    chezmoi init --apply https://github.com/$GITHUB_USERNAME/dotfiles.git
 }
 
 # Main script logic
@@ -196,6 +192,10 @@ sudo defaults write /Library/Preferences/SystemConfiguration/com.apple.smb.serve
 install_command_line_tools
 
 install_homebrew
+eval "$(/opt/homebrew/bin/brew shellenv)" # Activate in current shell
+brew analytics off
+brew install chezmoi
+brew doctor
 
 install_dotfiles
 
