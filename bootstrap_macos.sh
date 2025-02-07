@@ -53,14 +53,15 @@
 # Variables
 BOOTSTRAP_REPO_URL="https://github.com/khaosx/bootstrap-macos.git"  # Or your preferred repo
 BOOTSTRAP_DIR="$HOME/macos-setup"
-DEFAULT_COMPUTER_OWNER="${USER:-$(whoami)}"     # Use current user if not set
-DEFAULT_COMPUTER_NAME="${1:-${HOSTNAME%%.*}}"   # Use first parameter if exist, or hostname up to the first dot if not
+DEFAULT_COMPUTER_OWNER="Kris"
+DEFAULT_COMPUTER_NAME="Silicon"
 DEFAULT_TIME_ZONE="America/New_York"
 SYSDESC=$(system_profiler SPHardwareDataType | grep -o "Model Name:.*" | sed 's:.*Model Name\: ::' | xargs) # Trim whitespace
 
 # Constants
 readonly SUDO_KEEPALIVE_TIMEOUT=300 # Seconds (5 minutes)
 readonly HOMEBREW_INSTALL_URL="https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
+readonly $GITHUB_USERNAME="khaosx"
 
 # Functions
 
@@ -72,6 +73,17 @@ get_user_input() {
     printf "$prompt (Leave blank for default: %s)\n" "$default_value" > /dev/tty  # Write prompt to /dev/tty
     read -r input < /dev/tty # Read input from /dev/tty
     echo "${input:-$default_value}"  # Return the input or default
+}
+
+is_mac_app_store_signed_in() {
+  printf "Have you signed in to the Mac App Store? (y/n)\n"  # Prompt the user
+  read -r reply                                          # Read the user's input
+
+  if [[ "$reply" =~ ^[Yy]$ ]]; then                     # Check if the input is "y" or "Y"
+    return 0                                            # Return 0 (success) if signed in
+  else
+    return 1                                            # Return 1 (failure) if not signed in
+  fi
 }
 
 install_command_line_tools() {
@@ -104,12 +116,12 @@ install_homebrew() {
 }
 
 install_brewfile() {
-    if [[ -n "$MY_ENV_VAR" ]]; then
-      printf "Installing base loadout.\n"
+    if [[ -n "$HOMEBREW_BUNDLE_FILE" ]]; then
+      printf "\nInstalling base loadout.\n"
       brew bundle
       brew cleanup
     else
-      printf "No brewfile found, please install applications manually.\n"
+      printf "\nNo brewfile found, please install applications manually.\n"
       printf "To avoid this step:\n"
       printf "Generate with \"brew bundle --file=$HOME/.Brewfile\"\n"
       printf "Run command \'export HOMEBREW_BUNDLE_FILE=\"$HOME/.Brewfile\"\n"
@@ -117,24 +129,24 @@ install_brewfile() {
 }
 
 install_ansible_components() {
-    printf "Installing Ansible collections.\n"
+    printf "\nInstalling Ansible collections.\n"
     ansible-galaxy collection install community.general
 }
 
 install_dotfiles() {
-    printf "Installing and linking dotfiles.\n"
+    printf "\nInstalling and linking dotfiles.\n"
     chezmoi init --apply $GITHUB_USERNAME
 }
 
 # Main script logic
 clear
+
 printf "*************************************************************************\\n"
 printf "*******                                                           *******\\n"
 printf "*******                 Post Install MacOS Config                 *******\\n"
 printf "*******                                                           *******\\n"
 printf "*************************************************************************\\n\\n"
 
-printf "Verifying macOS is the operating system...\n"
 [[ $(uname -s) != "Darwin" ]] && { echo "This script only supports macOS. Exiting."; exit 1; }
 printf "OS Verified. You may be prompted to enter your password for sudo\n\n"
 
@@ -146,23 +158,30 @@ printf "\nNow, let's get some info about your setup.\n\n"
 
 COMPUTER_NAME=$(get_user_input "Enter a name for your Mac" "$DEFAULT_COMPUTER_NAME")
 COMPUTER_OWNER=$(get_user_input "Who is the primary user of this system?" "$DEFAULT_COMPUTER_OWNER")
+printf "NOTE: To view all zones, exit and run \`sudo systemsetup -listtimezones\`\n"
 TIME_ZONE=$(get_user_input "Enter your time zone" "$DEFAULT_TIME_ZONE")
-printf "NOTE: To view all zones, run \`sudo systemsetup -listtimezones\`\n"
 
-read -r "REPLY?Please sign in to the Mac App Store. Press Enter when done."
+if is_mac_app_store_signed_in; then
+  echo "Mac App Store sign-in confirmed. Continuing...\n\n"
+else
+  echo "Mac App Store sign-in check failed. Exiting."
+  exit 1
+fi
 
 COMPUTER_DESCRIPTION="$COMPUTER_OWNER's $SYSDESC"
 HOST_NAME=$(echo "$COMPUTER_NAME" | tr '[:upper:]' '[:lower:]')
 
-clear
-printf "Looks good. Here's what we've got so far.\\n"
+printf "Here's what we've got so far:\\n"
 printf "Bootstrap Script:       ==> $BOOTSTRAP_REPO_URL\\n"
 printf "Bootstrap Directory:    ==> $BOOTSTRAP_DIR\\n"
 printf "Computer Name:          ==> $COMPUTER_NAME\\n"
 printf "Computer Description:   ==> $COMPUTER_DESCRIPTION\\n"
 printf "Host Name:              ==> $HOST_NAME\\n"
-printf "Time Zone:              ==> $TIME_ZONE\\n\\n"
-read -r "CONFIRM?Continue? (y/n)" # More concise confirm prompt
+printf "Time Zone:              ==> $TIME_ZONE\\n"
+printf "App Store Login:        ==> CONFIRMED\\n\\n"
+printf "Continue? (y/n)\n" > /dev/tty  # Prompt to /dev/tty
+read -r CONFIRM < /dev/tty           # Read from /dev/tty
+
 [[ ! "$CONFIRM" =~ ^[Yy]$ ]] && { printf "Exiting per user choice\n"; exit 1; }
 
 printf "Applying basic system info\\n"
@@ -180,11 +199,11 @@ install_homebrew
 
 install_dotfiles
 
-install_applications
+install_brewfile
 
 install_ansible_components
 
-printf  "**********************************************************************\\n"
+printf  "\n**********************************************************************\\n"
 printf  "**********************************************************************\\n"
 printf  "****                                                              ****\\n"
 printf  "****            MacOS post-install script complete!               ****\\n"
