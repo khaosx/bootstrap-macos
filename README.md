@@ -1,9 +1,4 @@
-# bootstrap_macos.sh  
-macOS Post-Install Configuration  
-
-Author: Kristopher Newman
- 
-Date: 2025-02-06
+# bootstrap_macos.sh - macOS Post-Install Configuration  
 
 ## Description:
 This script automates common post-installation tasks for macOS, including
