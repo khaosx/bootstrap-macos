@@ -29,8 +29,20 @@ Default values and settings are defined in a separate configuration file `config
 ## License:
 [MIT License](https://github.com/khaosx/bootstrap-macos/tree/main?tab=MIT-1-ov-file#)
 
-## Install with one-liner:
+## Install with a step and a one-liner:
+
+Create config.cfg with the following variables (replace default values with your own):
+```Bash
+DEFAULT_COMPUTER_OWNER="Rick Sanchez"
+DEFAULT_COMPUTER_NAME="Citadel"
+DEFAULT_TIME_ZONE="America/New_York"
+GITHUB_USERNAME="JerrySmith"
+BOOTSTRAP_DIR="$HOME/macos-setup"
+HOMEBREW_BUNDLE_FILE="$HOME/.Brewfile"  # Update this path if your Brewfile is elsewhere
+```
+
+and then...
 
 ```
-curl --remote-name https://raw.githubusercontent.com/khaosx/bootstrap-macos/refs/heads/main/bootstrap_macos.sh && sh bootstrap_macos.sh 2>&1 | tee ~/install.log
+curl --remote-name https://raw.githubusercontent.com/khaosx/bootstrap-macos/refs/heads/main/config.cfg && curl --remote-name https://raw.githubusercontent.com/khaosx/bootstrap-macos/refs/heads/main/bootstrap_macos.sh && sh bootstrap_macos.sh 2>&1 | tee ~/install.log
 ```
