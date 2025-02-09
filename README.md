@@ -1,7 +1,7 @@
 # bootstrap_macos.sh  
 macOS Post-Install Configuration  
 
-Author: Kristopher Newman
+Author: Kristopher Newman 
 Date: 2025-02-06
 
 ## Description:
