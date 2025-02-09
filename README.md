@@ -18,8 +18,8 @@ Default values and settings are defined in a separate configuration file `config
 * Xcode Command Line Tools (automatically installed if not present)
 * Homebrew (automatically installed)
 * Homebrew bundle containing all dependencies for brew, mas, cask, etc (Optional, but recommended)
-** Generate with "brew bundle --file=$HOME/.Brewfile"
-** Set with command export HOMEBREW_BUNDLE_FILE="$HOME/.Brewfile"  
+   * Generate with "brew bundle --file=$HOME/.Brewfile"
+   * Set with command export HOMEBREW_BUNDLE_FILE="$HOME/.Brewfile"  
 
 ## Notes:
 * This script requires administrator privileges (sudo) to perform certain actions.
