@@ -1,7 +1,7 @@
-# bootstrap_macos.sh - macOS Post-Installation Configuration
-
-## Author: Kristopher Newman
-## Date: 2025-02-06
+# bootstrap_macos.sh  
+### macOS Post-Install Configuration
+### Author: Kristopher Newman
+### Date: 2025-02-06
 
 ## Description:
 This script automates common post-installation tasks for macOS, including
@@ -21,8 +21,8 @@ Default values and settings are defined in a separate configuration file `config
 * Xcode Command Line Tools (automatically installed if not present)
 * Homebrew (automatically installed)
 * Homebrew bundle containing all dependencies for brew, mas, cask, etc (Optional, but recommended)
-* * Generate with "brew bundle --file=$HOME/.Brewfile"
-* * Set with command export HOMEBREW_BUNDLE_FILE="$HOME/.Brewfile"  
+** Generate with "brew bundle --file=$HOME/.Brewfile"
+** Set with command export HOMEBREW_BUNDLE_FILE="$HOME/.Brewfile"  
 
 ## Notes:
 * This script requires administrator privileges (sudo) to perform certain actions.
