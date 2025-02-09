@@ -27,7 +27,7 @@ Default values and settings are defined in a separate configuration file `config
 * This script draws inspiration from and adapts concepts from other bootstrap scripts, including those available on GitHub. Attribution for specific components is provided within the script where applicable.  
 
 ## License:
-MIT License
+[MIT License](https://github.com/khaosx/bootstrap-macos/tree/main?tab=MIT-1-ov-file#)
 
 ## Install with one-liner:
 
