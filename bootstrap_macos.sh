@@ -101,11 +101,23 @@ deploy_dotfiles() {
     cp -f "$DOTFILES_DIR/git.gitmessage" "$HOME/.gitmessage"
     cp -f "$DOTFILES_DIR/ansible.ansible-lint" "$HOME/.ansible-lint"
 
+    # --- Terminal Profile Import ---
+    if [[ -f "$DOTFILES_DIR/ConsoleDefault.terminal" ]]; then
+        log_info "Importing Terminal profile: ConsoleDefault..."
+        # Imports the profile into Terminal.app's internal library
+        open "$DOTFILES_DIR/ConsoleDefault.terminal"
+        
+        # Set 'ConsoleDefault' as the default for new windows and startup
+        defaults write com.apple.Terminal "Default Window Settings" -string "ConsoleDefault"
+        defaults write com.apple.Terminal "Startup Window Settings" -string "ConsoleDefault"
+    else
+        log_warn "ConsoleDefault.terminal not found in $DOTFILES_DIR"
+    fi
+
     log_info "Processing templates via 1Password CLI..."
     mkdir -p "$HOME/.ssh"
     chmod 700 "$HOME/.ssh"
 
-    # Using -f to ensure current session secrets overwrite any stale files
     op inject -f -i "$DOTFILES_DIR/ssh.config.tpl" -o "$HOME/.ssh/config"
     op inject -f -i "$DOTFILES_DIR/zsh.aliases.tpl" -o "$HOME/.aliases"
     op inject -f -i "$DOTFILES_DIR/zsh.zprofile.tpl" -o "$HOME/.zprofile"
