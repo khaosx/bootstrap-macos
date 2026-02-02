@@ -95,20 +95,21 @@ setup_projects_and_dotfiles() {
 
 deploy_dotfiles() {
     log_info "Deploying static dotfiles..."
-    cp "$DOTFILES_DIR/sh.Brewfile" "$HOME/.Brewfile"
-    cp "$DOTFILES_DIR/git.gitconfig" "$HOME/.gitconfig"
-    cp "$DOTFILES_DIR/git.gitignore" "$HOME/.gitignore"
-    cp "$DOTFILES_DIR/git.gitmessage" "$HOME/.gitmessage"
-    cp "$DOTFILES_DIR/ansible.ansible-lint" "$HOME/.ansible-lint"
+    cp -f "$DOTFILES_DIR/sh.Brewfile" "$HOME/.Brewfile"
+    cp -f "$DOTFILES_DIR/git.gitconfig" "$HOME/.gitconfig"
+    cp -f "$DOTFILES_DIR/git.gitignore" "$HOME/.gitignore"
+    cp -f "$DOTFILES_DIR/git.gitmessage" "$HOME/.gitmessage"
+    cp -f "$DOTFILES_DIR/ansible.ansible-lint" "$HOME/.ansible-lint"
 
     log_info "Processing templates via 1Password CLI..."
     mkdir -p "$HOME/.ssh"
     chmod 700 "$HOME/.ssh"
 
-    op inject -i "$DOTFILES_DIR/ssh.config.tpl" -o "$HOME/.ssh/config"
-    op inject -i "$DOTFILES_DIR/zsh.aliases.tpl" -o "$HOME/.aliases"
-    op inject -i "$DOTFILES_DIR/zsh.zprofile.tpl" -o "$HOME/.zprofile"
-    op inject -i "$DOTFILES_DIR/zsh.zshrc.tpl" -o "$HOME/.zshrc"
+    # Using -f to ensure current session secrets overwrite any stale files
+    op inject -f -i "$DOTFILES_DIR/ssh.config.tpl" -o "$HOME/.ssh/config"
+    op inject -f -i "$DOTFILES_DIR/zsh.aliases.tpl" -o "$HOME/.aliases"
+    op inject -f -i "$DOTFILES_DIR/zsh.zprofile.tpl" -o "$HOME/.zprofile"
+    op inject -f -i "$DOTFILES_DIR/zsh.zshrc.tpl" -o "$HOME/.zshrc"
 
     chmod 600 "$HOME/.ssh/config"
 }
@@ -122,15 +123,27 @@ apply_system_settings() {
     sudo scutil --set LocalHostName "$HOST_NAME"
 
     log_info "Applying UI/UX defaults..."
+
+    # NSGlobalDomain Enhancements
     defaults write NSGlobalDomain AppleShowAllExtensions -bool true
     defaults write NSGlobalDomain NSNavPanelExpandedStateForSaveMode -bool true
     defaults write NSGlobalDomain NSNavPanelExpandedStateForSaveMode2 -bool true
+    defaults write NSGlobalDomain PMPrintingExpandedStateForPrint -bool true
+    defaults write NSGlobalDomain PMPrintingExpandedStateForPrint2 -bool true
+    defaults write NSGlobalDomain NSAutomaticDashSubstitutionEnabled -bool false
+    defaults write NSGlobalDomain NSAutomaticQuotesSubstitutionEnabled -bool false
+    defaults write NSGlobalDomain NSQuitAlwaysKeepsWindows -bool false
+    defaults write NSGlobalDomain NSDocumentsSaveNewDocumentsToCloud -bool false
+    defaults write NSGlobalDomain NSDisableAutomaticTermination -bool true
+    
+    # Finder & System
     defaults write com.apple.finder ShowPathbar -bool true
     defaults write com.apple.finder _FXSortFoldersFirst -bool true
     defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"
     defaults write com.apple.LaunchServices LSQuarantine -bool false
     defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
     defaults write com.apple.desktopservices DSDontWriteUSBStores -bool true
+    defaults write com.apple.loginwindow TALLogoutSavesState -bool false
     
     # --- Time and Location Services ---
     log_info "Configuring Location and Time Services..."
@@ -141,7 +154,7 @@ apply_system_settings() {
         read -r _ < /dev/tty
     fi
 
-    # Apply automagic timezone/location settings
+    # Apply automagic settings
     sudo /usr/bin/defaults write /var/db/locationd/Library/Preferences/ByHost/com.apple.locationd LocationServicesEnabled -int 1
     local uuid=$(/usr/sbin/system_profiler SPHardwareDataType | grep "Hardware UUID" | cut -c22-57)
     sudo /usr/bin/defaults write /var/db/locationd/Library/Preferences/ByHost/com.apple.locationd.$uuid LocationServicesEnabled -int 1
@@ -150,7 +163,6 @@ apply_system_settings() {
     sudo /usr/bin/defaults write /private/var/db/timed/Library/Preferences/com.apple.timed.plist TMAutomaticTimeOnlyEnabled -bool YES
     sudo /usr/bin/defaults write /private/var/db/timed/Library/Preferences/com.apple.timed.plist TMAutomaticTimeZoneEnabled -bool YES
     
-    # Fallback to 1Password TZ before enabling network time
     if [[ -n "$TIME_ZONE" ]]; then
         sudo systemsetup -settimezone "$TIME_ZONE" > /dev/null
     fi
@@ -174,27 +186,22 @@ clear
 
 log_info "Starting macOS Bootstrap (Apple Silicon + Tahoe Edition)"
 
-# 0. Sudo and Permission Gate
 sudo -v
 keep_sudo_alive
 check_full_disk_access
 
-# 1. 1Password Prerequisite
 install_1password_prerequisites
 
-# 2. Identity Retrieval
 log_info "Fetching identity details from 1Password..."
 COMPUTER_NAME=$(op read "$OP_NAME_PATH")
 TIME_ZONE=$(op read "$OP_TZ_PATH")
 HOST_NAME=$(echo "$COMPUTER_NAME" | tr '[:upper:]' '[:lower:]' | tr -d ' ')
 
-# 3. Deployment and Configuration
 setup_projects_and_dotfiles
 deploy_dotfiles
 apply_system_settings
 apply_power_settings
 
-# 4. Software Installation
 brew analytics off
 if [[ -f "$HOME/.Brewfile" ]]; then
     log_info "Installing packages from $HOME/.Brewfile..."
@@ -202,13 +209,12 @@ if [[ -f "$HOME/.Brewfile" ]]; then
     brew cleanup
 fi
 
-# 5. Final Tools
 if command -v ansible-galaxy &> /dev/null; then
     log_info "Installing Ansible collections..."
     ansible-galaxy collection install community.general
 fi
 
-log_info "Bootstrap complete! Enjoy your new system."
+log_info "Bootstrap complete! Environment ready."
 killall Finder &>/dev/null || true
 
 unset COMPUTER_NAME HOST_NAME TIME_ZONE
